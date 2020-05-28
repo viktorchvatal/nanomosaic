@@ -1,18 +1,24 @@
 use glib::{Sender as GlibSender};
 use std::sync::mpsc::SyncSender;
-use nanocv::ImgBuf;
+use nanocv::{ImgSize, ImgBuf};
 pub type Rgba = [u8; 4];
 
 pub type LogicSender = SyncSender<Option<LogicMessage>>;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum LogicMessage {
     InitGui(GlibSender<GuiMessage>),
     LoadImage(String),
+    ImageResized((ImageId, ImgSize)),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum GuiMessage {
-    RenderSelect(ImgBuf<Rgba>),
-    RenderResult(ImgBuf<Rgba>),
+    Render((ImageId, ImgBuf<Rgba>)),
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum ImageId {
+    Select,
+    Result
 }

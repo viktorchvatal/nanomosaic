@@ -19,3 +19,11 @@ pub fn create_window(application: &Application) -> ApplicationWindow {
     });
     window
 }
+
+pub fn create_dummy_scroller() -> ScrolledWindow {
+    let scroller = gtk::ScrolledWindow::new(
+        gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT
+    );
+    scroller.set_policy(PolicyType::External, PolicyType::External);
+    scroller
+}

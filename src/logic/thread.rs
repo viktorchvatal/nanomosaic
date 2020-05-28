@@ -1,9 +1,8 @@
 use std::sync::mpsc::{Receiver};
 use std::{thread, thread::JoinHandle};
 use log::*;
-use glib::{Sender as GlibSender};
 
-use crate::message::{LogicMessage, GuiMessage};
+use crate::message::{LogicMessage};
 use super::state::State;
 
 // ================================= PUBLIC ==================================
