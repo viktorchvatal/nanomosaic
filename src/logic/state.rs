@@ -3,7 +3,7 @@ use crate::{common::{log_err, convert_err}};
 use crate::message::{GuiMessage, LogicMessage, Rgba, ImageId};
 use glib::{Sender as GlibSender};
 use image::{open};
-use nanocv::{ImgBuf, ImgSize, Img};
+use nanocv::{ImgBuf, ImgSize, Img, filter::resize_nearest};
 
 pub struct State {
     gui: Option<GlibSender<GuiMessage>>,
@@ -58,20 +58,38 @@ impl State {
                 warn!("Loading image {} failed: {}", path, msg);        
             }
         };
-        
-        if let Some(ref gui) = self.gui {
-            log_err(gui.send(GuiMessage::Render((ImageId::Select, self.image.clone()))));
-            log_err(gui.send(GuiMessage::Render((ImageId::Result, self.image.clone()))));
-        }
     }
 
     fn render_select_image(&self) {
-
+        if let Some(ref gui) = self.gui {
+            let resized = resize(&self.image, self.select_size);
+            log_err(gui.send(GuiMessage::Render((ImageId::Select, resized))));
+        }    
     }
 
     fn render_result_image(&self) {
-
+        if let Some(ref gui) = self.gui {
+            let resized = resize(&self.image, self.result_size);
+            log_err(gui.send(GuiMessage::Render((ImageId::Result, resized))));
+        }    
     }
+}
+
+fn resize(source: &ImgBuf<Rgba>, target_size: ImgSize) -> ImgBuf<Rgba> {
+    if target_size.x == 0 || target_size.y == 0 {
+        return ImgBuf::new(target_size);
+    }
+
+    let factor_x = target_size.x as f64/source.width() as f64;
+    let factor_y = target_size.y as f64/source.height() as f64;
+    let factor = if factor_x > factor_y {factor_y} else {factor_x};
+
+    let target = ImgSize::new(
+        (source.width() as f64*factor) as usize,
+        (source.height() as f64*factor) as usize,
+    );
+
+    resize_nearest(&source, target)
 }
 
 fn load_image(path: &str) -> Result<ImgBuf<Rgba>, String> {
