@@ -6,7 +6,7 @@ use crate::common::log_err;
 pub type Rgba = [u8; 4];
 
 pub type LogicSender = SyncSender<Option<LogicMessage>>;
-pub type CompositeSender = SyncSender<Option<CompositeMessage>>;
+pub type CompositorSender = SyncSender<Option<CompositeMessage>>;
 
 #[derive(Clone)]
 pub enum LogicMessage {
@@ -18,6 +18,7 @@ pub enum LogicMessage {
 #[derive(Clone)]
 pub enum CompositeMessage {
     InitGui(GlibSender<GuiMessage>),
+    CompositeMosaic((ImgBuf<Rgba>, ImgSize))
 }
 
 #[derive(Clone)]

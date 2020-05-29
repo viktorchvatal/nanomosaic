@@ -9,6 +9,7 @@ use message::{CompositeMessage, LogicMessage};
 use logic::{LogicState};
 use common::convert_err;
 use threads::start_thread_loop;
+use composite::CompositorState;
 
 mod panic;
 mod logger;
@@ -17,6 +18,8 @@ mod gui;
 mod logic;
 mod common;
 mod threads;
+mod composite;
+mod image;
 
 fn main() -> Result<(), String> {
     if env::args().len() != 2 {
@@ -45,7 +48,8 @@ fn start_application(file_name: &str) -> Result<(), String> {
     let (logic_tx, logic_rx) = mpsc::sync_channel::<Option<LogicMessage>>(queue_size);
     let (composite_tx, composite_rx) = mpsc::sync_channel::<Option<CompositeMessage>>(queue_size);
 
-    let state_thread = start_thread_loop(logic_rx, LogicState::new());
+    let state_thread = start_thread_loop(logic_rx, LogicState::new(composite_tx.clone()));
+    let compositor_thread = start_thread_loop(composite_rx, CompositorState::new());
 
     let gui_logic_tx = logic_tx.clone();
     let gui_composite_tx = composite_tx.clone();
@@ -66,6 +70,10 @@ fn start_application(file_name: &str) -> Result<(), String> {
     convert_err(logic_tx.send(None))?;
     convert_err(state_thread.join())?;
     debug!("Logic thread finished");
+
+    convert_err(composite_tx.send(None))?;
+    convert_err(compositor_thread.join())?;
+    debug!("Compositor thread finished");
 
     Ok(())
 }

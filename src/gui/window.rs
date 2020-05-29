@@ -4,14 +4,14 @@ use glib::{MainContext};
 use super::components::*;
 use gdk_pixbuf::{Pixbuf};
 use super::{pixbuf::{update_pixbuf, create_pixbuf}};
-use crate::{message::{LogicSender, GuiMessage, LogicMessage, Rgba, ImageId, CompositeSender, CompositeMessage, send}, common::log_err};
+use crate::{common::log_err, message::*};
 use nanocv::{ImgSize, ImgBuf};
 
 pub fn build_ui(
     app: &Application, 
     path: String, 
     logic: LogicSender,
-    composite: CompositeSender,
+    composite: CompositorSender,
 ) {
     let (gui_tx, gui_rx) = MainContext::channel(glib::PRIORITY_DEFAULT);
     let logic_gui_tx = gui_tx.clone();

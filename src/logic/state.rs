@@ -1,18 +1,17 @@
 use log::*;
 use crate::{common::{convert_err}};
-use crate::message::{GuiMessage, LogicMessage, Rgba, ImageId, MessageReceiver, send_glib};
+use crate::message::*;
+use crate::image::resize;
 use glib::{Sender as GlibSender};
 use image::{open};
-use nanocv::{ImgBuf, ImgSize, Img, Vec2d};
-use nanocv::filter::{
-    resize_nearest_new, map_range, mirror_horizontal_new, mirror_vertical_new
-};
+use nanocv::{ImgBuf, ImgSize, Img};
 
 pub struct LogicState {
     gui: Option<GlibSender<GuiMessage>>,
     image: ImgBuf<Rgba>,
     select_size: ImgSize,
     result_size: ImgSize,
+    compositor: CompositorSender,
 }
 
 impl MessageReceiver<LogicMessage> for LogicState {
@@ -26,12 +25,13 @@ impl MessageReceiver<LogicMessage> for LogicState {
 }
 
 impl LogicState {
-    pub fn new() -> Self {
+    pub fn new(compositor: CompositorSender) -> Self {
         Self {
             gui: None,
             image: ImgBuf::<Rgba>::new_init(ImgSize::new(1, 1), [0, 0, 0, 0]),
             select_size: ImgSize::new(1, 1),
             result_size: ImgSize::new(1, 1),
+            compositor
         }
     }
 
@@ -71,27 +71,11 @@ impl LogicState {
     }
 
     fn render_result_image(&self) {
-        let resized = resize(&self.image, self.result_size/2);
-        let mosaic = create_mosaic(&resized);
-        send_glib(&self.gui, GuiMessage::Render((ImageId::Result, mosaic)));
+        send(
+            &self.compositor, 
+            CompositeMessage::CompositeMosaic((self.image.clone(), self.result_size))
+        );
     }
-}
-
-fn resize(source: &ImgBuf<Rgba>, target_size: ImgSize) -> ImgBuf<Rgba> {
-    if target_size.x == 0 || target_size.y == 0 {
-        return ImgBuf::new(target_size);
-    }
-
-    let factor_x = target_size.x as f64/source.width() as f64;
-    let factor_y = target_size.y as f64/source.height() as f64;
-    let factor = if factor_x > factor_y {factor_y} else {factor_x};
-
-    let target = ImgSize::new(
-        (source.width() as f64*factor) as usize,
-        (source.height() as f64*factor) as usize,
-    );
-
-    resize_nearest_new(source, target)
 }
 
 fn load_image(path: &str) -> Result<ImgBuf<Rgba>, String> {
@@ -118,18 +102,3 @@ fn byte_vector_to_rgba(input: Vec<u8>) -> Vec<Rgba> {
     result
 }
 
-fn create_mosaic(image: &ImgBuf<Rgba>) -> ImgBuf<Rgba> {
-    let mut result = ImgBuf::new(image.size()*2);
-    let mirror_x = mirror_horizontal_new(image);
-    let mirror_y = mirror_vertical_new(image);
-    let mirror_xy = mirror_vertical_new(&mirror_x);
-    let src = image.range();
-    let (w, h) = (image.width() as isize, image.height() as isize);
-
-    map_range(image, &mut result, src, src, |x, _| x);
-    map_range(&mirror_x, &mut result, src, src + Vec2d::new(w, 0), |x, _| x);
-    map_range(&mirror_y, &mut result, src, src + Vec2d::new(0, h), |x, _| x);
-    map_range(&mirror_xy, &mut result, src, src + Vec2d::new(w, h), |x, _| x);
-
-    result
-}
