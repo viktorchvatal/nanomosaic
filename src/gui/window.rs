@@ -10,7 +10,7 @@ use gdk::EventButton;
 
 pub fn build_ui(
     app: &Application, 
-    path: String, 
+    path: Option<String>, 
     logic: LogicSender,
     composite: CompositorSender,
 ) {
@@ -36,15 +36,26 @@ pub fn build_ui(
     splitter.pack1(&select_box, false, false);
     splitter.pack2(&result_box, true, true);
 
-    window.add(&splitter);
+    let load_button = create_load_button(logic.clone(), window.clone());
+
+    let top_panel = Box::new(Orientation::Horizontal, 0);
+    top_panel.pack_start(&load_button, false, false, 5);
+
+    let main_panel = Box::new(Orientation::Vertical, 0);
+    main_panel.pack_start(&top_panel, false, false, 5);
+    main_panel.pack_start(&splitter, true, true, 5);
+
+    window.add(&main_panel);
     window.show_all();
     window.maximize();
 
+    let message_logic_sender = logic.clone();
     let message_select_image = select_image.clone();
     let message_result_image = result_image.clone();
 
     gui_rx.attach(None, move |message: GuiMessage| {
         process_message(
+            message_logic_sender.clone(),
             message, 
             select_pixbuf.clone(),
             result_pixbuf.clone(),
@@ -57,7 +68,35 @@ pub fn build_ui(
 
     splitter.set_position(window.get_size().0/2);
 
-    send(&logic, LogicMessage::LoadImage(path));
+    if let Some(path) = path {
+        send(&logic, LogicMessage::LoadImage(path));
+    }
+}
+
+fn create_load_button(logic: LogicSender, window: ApplicationWindow) -> Button {
+    let button = Button::new();
+    button.add(&Label::new("Load image"));
+    button.connect_clicked(move |_| {
+        if let Some(path) = open_file_dialog(window.clone()) {
+            send(&logic, LogicMessage::LoadImage(path));
+        }
+    });   
+    button    
+}
+
+fn open_file_dialog(window: ApplicationWindow) -> Option<String> {
+    let open_dialog = FileChooserDialog::with_buttons(
+        "Load image", Some(&window), FileChooserAction::Open,
+        &[("_Cancel", ResponseType::Cancel), ("_Open", ResponseType::Accept)]
+    );
+
+    let result = open_dialog.clone().run();    
+    open_dialog.close();
+
+    match result {
+        -3 => Some(open_dialog.get_filename()?.to_str()?.to_owned()),
+        _ => None
+    }
 }
 
 fn create_images(logic: LogicSender, id: ImageId) -> (Image, EventBox, ScrolledWindow) {
@@ -102,6 +141,7 @@ fn connect_image_mouse_move(image: EventBox, logic: LogicSender) {
 }
 
 fn process_message(
+    logic: LogicSender,
     message: GuiMessage, 
     select_pixbuf: Rc<RefCell<Pixbuf>>, 
     result_pixbuf: Rc<RefCell<Pixbuf>>,
@@ -110,15 +150,16 @@ fn process_message(
 ) {
     match message {
         GuiMessage::RenderSource(image) => {
-            update_image(select_image, select_pixbuf, image);
+            update_image(select_image, select_pixbuf, &image);
+            send(&logic, LogicMessage::ReturnBuffer(image));
         }
         GuiMessage::RenderTarget(data) => {
-            update_image(result_image, result_pixbuf, data);
+            update_image(result_image, result_pixbuf, &data);
         },
     }
 }
 
-fn update_image(image: Image, pixbuf: Rc<RefCell<Pixbuf>>, data: ImgBuf<Rgba>) {
+fn update_image(image: Image, pixbuf: Rc<RefCell<Pixbuf>>, data: &ImgBuf<Rgba>) {
     update_pixbuf(&data, pixbuf.clone());
     let inner: &Pixbuf = &pixbuf.borrow();
     image.set_from_pixbuf(Some(inner));

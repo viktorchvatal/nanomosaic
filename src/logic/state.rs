@@ -35,6 +35,9 @@ impl MessageReceiver<LogicMessage> for LogicState {
                 self.compositor_free = true;
                 Ok(self.render_select_image())
             },
+            ReturnBuffer(_image) => {
+                Ok(())
+            }
         }
     }
 }
@@ -66,6 +69,10 @@ impl LogicState {
             _ => {}
         }
 
+        self.render_all();
+    }
+
+    fn render_all(&mut self) {
         self.source_modified = true;
         self.result_modified = true;
         self.render_select_image();
@@ -99,6 +106,7 @@ impl LogicState {
                 self.image = img;
                 self.start = Vec2d::new(0, 0);
                 self.end = self.image.range().end();
+                self.render_all();
             },
             Err(msg) => {
                 warn!("Loading image {} failed: {}", path, msg);        
@@ -107,6 +115,10 @@ impl LogicState {
     }
 
     fn render_select_image(&mut self) {
+        if self.output_buffer.is_none() {
+            return;
+        }
+
         let mut img = resize(&self.image, self.select_size);
         let factor = resize_factor(self.image.size(), self.select_size);
         draw_full_horizontal_line(&mut img, (self.start.y as f64*factor) as isize);

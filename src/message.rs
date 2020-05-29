@@ -15,6 +15,7 @@ pub enum LogicMessage {
     ImageResized((ImageId, ImgSize)),
     MouseDown((u32, f64, f64)),
     CompositorFinished,
+    ReturnBuffer(ImgBuf<Rgba>),
 }
 
 #[derive(Clone)]

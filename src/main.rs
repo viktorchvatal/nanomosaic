@@ -20,18 +20,28 @@ fn main() -> Result<(), String> {
         return Ok(());
     }
 
+    println!("Arg count: {}", env::args().len());
+
+    let path: Option<String> = match env::args().len() {
+        1 => None,
+        2 => Some(env::args().nth(1).unwrap()),
+        _ => {
+            println!("USAGE:\nnanomosaic [image]");
+            return Err(format!("Wrong parameters provided."));
+        }
+    };
+
     init_simple_logger();
     set_logging_panic_hook();
 
-    let archive_path = env::args().nth(1).unwrap();
-    start_application(&archive_path)
+    start_application(path)
 }
 
 const APP_NAME: &str = "nanomosaic.gtk";
 
-fn start_application(file_name: &str) -> Result<(), String> {
+fn start_application(file_name: Option<String>) -> Result<(), String> {
     info!("Starting {}", APP_NAME);
-    info!("Input image: {}", file_name);
+    info!("Input image: {:?}", &file_name);
 
     let queue_size = 3;
 
@@ -46,12 +56,11 @@ fn start_application(file_name: &str) -> Result<(), String> {
 
     let gui_logic_tx = logic_tx.clone();
     let gui_composite_tx = composite_tx.clone();
-    let gui_file_name = file_name.to_owned();
 
     app.connect_startup(move |app|
         build_ui(
             app,
-            gui_file_name.clone(),
+            file_name.clone(),
             gui_logic_tx.clone(),
             gui_composite_tx.clone(),
         )
