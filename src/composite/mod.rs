@@ -1,13 +1,14 @@
 use log::*;
 use glib::{Sender as GlibSender};
-use crate::message::{CompositeMessage, GuiMessage, MessageReceiver, Rgba, send_glib, ImageId};
-use crate::common::resize;
+use crate::message::*;
+use crate::common::{resize};
 use nanocv::{ImgBuf, ImgSize, Img, Vec2d};
 use nanocv::filter::{
     map_range, mirror_horizontal_new, mirror_vertical_new
 };
 
 pub struct CompositorState { 
+    logic: LogicSender,
     gui: Option<GlibSender<GuiMessage>>,    
 }
 
@@ -21,10 +22,8 @@ impl MessageReceiver<CompositeMessage> for CompositorState {
 }
 
 impl CompositorState {
-    pub fn new() -> Self {
-        Self {
-            gui: None
-        }
+    pub fn new(logic: LogicSender) -> Self {
+        Self {logic, gui: None}
     }    
 
     fn init_gui(&mut self, channel: GlibSender<GuiMessage>) {
@@ -36,6 +35,7 @@ impl CompositorState {
         let resized = resize(&img, size/2);
         let mosaic = create_mosaic(&resized);
         send_glib(&self.gui, GuiMessage::RenderTarget(mosaic));        
+        send(&self.logic, LogicMessage::CompositorFinished)
     }
 }
 

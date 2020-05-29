@@ -19,6 +19,8 @@ pub struct LogicState {
     end: Vec2d<isize>,
     result_modified: bool,
     compositor_free: bool,
+    source_modified: bool,
+    output_buffer: Option<ImgBuf<Rgba>>,
 }
 
 impl MessageReceiver<LogicMessage> for LogicState {
@@ -29,6 +31,10 @@ impl MessageReceiver<LogicMessage> for LogicState {
             LoadImage(path) => Ok(self.load_image(&path)),
             ImageResized((id, size)) => Ok(self.image_resized(id, size)),
             MouseDown((button, x, y)) => Ok(self.mouse_down(button, x, y)),
+            CompositorFinished => {
+                self.compositor_free = true;
+                Ok(self.render_select_image())
+            },
         }
     }
 }
@@ -38,6 +44,7 @@ impl LogicState {
         Self {
             gui: None,
             image: ImgBuf::<Rgba>::new_init(ImgSize::new(1, 1), [0, 0, 0, 0]),
+            output_buffer: Some(ImgBuf::<Rgba>::new_init(ImgSize::new(1, 1), [0, 0, 0, 0])),
             select_size: ImgSize::new(1, 1),
             result_size: ImgSize::new(1, 1),
             compositor,
@@ -45,6 +52,7 @@ impl LogicState {
             end: Vec2d::new(0, 0),
             result_modified: true,
             compositor_free: true,
+            source_modified: true,
         }
     }
 
@@ -58,6 +66,8 @@ impl LogicState {
             _ => {}
         }
 
+        self.source_modified = true;
+        self.result_modified = true;
         self.render_select_image();
         self.render_result_image();
     }
@@ -66,10 +76,12 @@ impl LogicState {
                 match id {
             ImageId::Select => if self.select_size != size {
                 self.select_size = size;
+                self.source_modified = true;
                 self.render_select_image();
             },
             ImageId::Result => if self.result_size != size {
                 self.result_size = size;
+                self.result_modified = true;
                 self.render_result_image();
             },
         }
@@ -94,7 +106,7 @@ impl LogicState {
         };
     }
 
-    fn render_select_image(&self) {
+    fn render_select_image(&mut self) {
         let mut img = resize(&self.image, self.select_size);
         let factor = resize_factor(self.image.size(), self.select_size);
         draw_full_horizontal_line(&mut img, (self.start.y as f64*factor) as isize);
@@ -113,6 +125,9 @@ impl LogicState {
     }
 
     fn render_result_image(&self) {
+        if !self.result_modified { return; }
+        if !self.compositor_free { return; }
+
         let range = self.selected_range();
 
         let buffer = if range.width() > 0 && range.height() > 0 {

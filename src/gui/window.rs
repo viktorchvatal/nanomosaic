@@ -40,13 +40,11 @@ pub fn build_ui(
     window.show_all();
     window.maximize();
 
-    let message_logic = logic.clone();
     let message_select_image = select_image.clone();
     let message_result_image = result_image.clone();
 
     gui_rx.attach(None, move |message: GuiMessage| {
         process_message(
-            message_logic.clone(), 
             message, 
             select_pixbuf.clone(),
             result_pixbuf.clone(),
@@ -104,7 +102,6 @@ fn connect_image_mouse_move(image: EventBox, logic: LogicSender) {
 }
 
 fn process_message(
-    logic: LogicSender, 
     message: GuiMessage, 
     select_pixbuf: Rc<RefCell<Pixbuf>>, 
     result_pixbuf: Rc<RefCell<Pixbuf>>,

@@ -42,7 +42,7 @@ fn start_application(file_name: &str) -> Result<(), String> {
     let (composite_tx, composite_rx) = mpsc::sync_channel::<Option<CompositeMessage>>(queue_size);
 
     let state_thread = start_thread_loop(logic_rx, LogicState::new(composite_tx.clone()));
-    let compositor_thread = start_thread_loop(composite_rx, CompositorState::new());
+    let compositor_thread = start_thread_loop(composite_rx, CompositorState::new(logic_tx.clone()));
 
     let gui_logic_tx = logic_tx.clone();
     let gui_composite_tx = composite_tx.clone();

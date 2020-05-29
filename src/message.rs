@@ -1,7 +1,7 @@
 use log::*;
 use glib::{Sender as GlibSender};
 use std::sync::mpsc::SyncSender;
-use nanocv::{ImgSize, ImgBuf, Range2d};
+use nanocv::{ImgSize, ImgBuf};
 use crate::common::log_err;
 pub type Rgba = [u8; 4];
 
@@ -14,6 +14,7 @@ pub enum LogicMessage {
     LoadImage(String),
     ImageResized((ImageId, ImgSize)),
     MouseDown((u32, f64, f64)),
+    CompositorFinished,
 }
 
 #[derive(Clone)]
