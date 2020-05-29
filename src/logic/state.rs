@@ -1,9 +1,13 @@
 use log::*;
-use crate::common::{convert_err, resize, resize_factor};
+use crate::common::{
+    convert_err, resize, resize_factor, draw_full_horizontal_line,
+    draw_full_vertical_line
+};
 use crate::message::*;
 use glib::{Sender as GlibSender};
 use image::{open};
 use nanocv::{ImgBuf, ImgSize, Img, Vec2d, Range2d, filter::map_range};
+use std::cmp::{min, max};
 
 pub struct LogicState {
     gui: Option<GlibSender<GuiMessage>>,
@@ -13,6 +17,8 @@ pub struct LogicState {
     compositor: CompositorSender,
     start: Vec2d<isize>,
     end: Vec2d<isize>,
+    result_modified: bool,
+    compositor_free: bool,
 }
 
 impl MessageReceiver<LogicMessage> for LogicState {
@@ -37,6 +43,8 @@ impl LogicState {
             compositor,
             start: Vec2d::new(0, 0),
             end: Vec2d::new(0, 0),
+            result_modified: true,
+            compositor_free: true,
         }
     }
 
@@ -50,6 +58,7 @@ impl LogicState {
             _ => {}
         }
 
+        self.render_select_image();
         self.render_result_image();
     }
 
@@ -86,16 +95,35 @@ impl LogicState {
     }
 
     fn render_select_image(&self) {
-        let resized = resize(&self.image, self.select_size);
-        send_glib(&self.gui, GuiMessage::Render((ImageId::Select, resized)));
+        let mut img = resize(&self.image, self.select_size);
+        let factor = resize_factor(self.image.size(), self.select_size);
+        draw_full_horizontal_line(&mut img, (self.start.y as f64*factor) as isize);
+        draw_full_vertical_line(&mut img, (self.start.x as f64*factor) as isize);
+        draw_full_horizontal_line(&mut img, (self.end.y as f64*factor) as isize);
+        draw_full_vertical_line(&mut img, (self.end.x as f64*factor) as isize);
+        send_glib(&self.gui, GuiMessage::RenderSource(img));
+    }
+
+    fn selected_range(&self) -> Range2d<isize> {
+        let x1 = min(self.start.x, self.end.x);
+        let x2 = max(self.start.x, self.end.x);
+        let y1 = min(self.start.y, self.end.y);
+        let y2 = max(self.start.y, self.end.y);
+        Range2d::new(x1..x2, y1..y2)
     }
 
     fn render_result_image(&self) {
-        let range = Range2d::new(self.start.x..self.end.x, self.start.y..self.end.y);
-        let patch_size = ImgSize::new(range.width() as usize, range.height() as usize);
-        let mut buffer = ImgBuf::<Rgba>::new(patch_size);
-        let output_range = buffer.range();
-        map_range(&self.image, &mut buffer, range, output_range, |i, _| i);
+        let range = self.selected_range();
+
+        let buffer = if range.width() > 0 && range.height() > 0 {
+            let patch_size = ImgSize::new(range.width() as usize, range.height() as usize);
+            let mut buffer = ImgBuf::<Rgba>::new(patch_size);
+            let output_range = buffer.range();
+            map_range(&self.image, &mut buffer, range, output_range, |i, _| i);    
+            buffer
+        } else {
+            ImgBuf::<Rgba>::new_init(ImgSize::new(1, 1), [0, 0, 0, 0])
+        };
 
         send(
             &self.compositor, 

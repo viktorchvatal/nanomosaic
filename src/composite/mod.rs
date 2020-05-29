@@ -35,7 +35,7 @@ impl CompositorState {
     fn composite(&self, img: ImgBuf<Rgba>, size: ImgSize) {
         let resized = resize(&img, size/2);
         let mosaic = create_mosaic(&resized);
-        send_glib(&self.gui, GuiMessage::Render((ImageId::Result, mosaic)));        
+        send_glib(&self.gui, GuiMessage::RenderTarget(mosaic));        
     }
 }
 

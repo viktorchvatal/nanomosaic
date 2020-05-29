@@ -31,6 +31,7 @@ pub fn build_ui(
     let (result_image, _, result_box) = create_images(logic.clone(), ImageId::Result);
 
     connect_image_mouse_down(select_events.clone(), logic.clone());
+    connect_image_mouse_move(select_events.clone(), logic.clone());
 
     splitter.pack1(&select_box, false, false);
     splitter.pack2(&result_box, true, true);
@@ -86,6 +87,22 @@ fn connect_image_mouse_down(image: EventBox, logic: LogicSender) {
     });
 }
 
+fn connect_image_mouse_move(image: EventBox, logic: LogicSender) {
+    image.connect_motion_notify_event(move |_image, event| {
+        let (x, y) = event.get_position();
+
+        if event.get_state().contains(gdk::ModifierType::BUTTON1_MASK) {
+            send(&logic, LogicMessage::MouseDown((1, x, y)));
+        }
+
+        if event.get_state().contains(gdk::ModifierType::BUTTON3_MASK) {
+            send(&logic, LogicMessage::MouseDown((3, x, y)));
+        }
+
+        Inhibit(true)
+    });
+}
+
 fn process_message(
     logic: LogicSender, 
     message: GuiMessage, 
@@ -95,9 +112,11 @@ fn process_message(
     result_image: Image,
 ) {
     match message {
-        GuiMessage::Render((id, data)) => match id {
-            ImageId::Select => update_image(select_image, select_pixbuf, data),
-            ImageId::Result => update_image(result_image, result_pixbuf, data),
+        GuiMessage::RenderSource(image) => {
+            update_image(select_image, select_pixbuf, image);
+        }
+        GuiMessage::RenderTarget(data) => {
+            update_image(result_image, result_pixbuf, data);
         },
     }
 }

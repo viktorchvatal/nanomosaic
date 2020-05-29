@@ -1,7 +1,7 @@
 use log::*;
 use glib::{Sender as GlibSender};
 use std::sync::mpsc::SyncSender;
-use nanocv::{ImgSize, ImgBuf};
+use nanocv::{ImgSize, ImgBuf, Range2d};
 use crate::common::log_err;
 pub type Rgba = [u8; 4];
 
@@ -24,7 +24,8 @@ pub enum CompositeMessage {
 
 #[derive(Clone)]
 pub enum GuiMessage {
-    Render((ImageId, ImgBuf<Rgba>)),
+    RenderSource(ImgBuf<Rgba>),
+    RenderTarget(ImgBuf<Rgba>),
 }
 
 #[derive(Clone, Copy, Debug)]
