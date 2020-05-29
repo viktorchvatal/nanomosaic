@@ -4,13 +4,21 @@ use glib::{MainContext};
 use super::components::*;
 use gdk_pixbuf::{Pixbuf};
 use super::{pixbuf::{update_pixbuf, create_pixbuf}};
-use crate::{message::{LogicSender, GuiMessage, LogicMessage, Rgba, ImageId}, common::log_err};
+use crate::{message::{LogicSender, GuiMessage, LogicMessage, Rgba, ImageId, CompositeSender, CompositeMessage, send}, common::log_err};
 use nanocv::{ImgSize, ImgBuf};
 
-pub fn build_ui(app: &Application, path: String, logic: LogicSender) {
+pub fn build_ui(
+    app: &Application, 
+    path: String, 
+    logic: LogicSender,
+    composite: CompositeSender,
+) {
     let (gui_tx, gui_rx) = MainContext::channel(glib::PRIORITY_DEFAULT);
     let logic_gui_tx = gui_tx.clone();
-    log_err(logic.send(Some(LogicMessage::InitGui(logic_gui_tx))));
+    let composite_gui_tx = gui_tx.clone();
+    
+    send(&logic, LogicMessage::InitGui(logic_gui_tx));
+    send(&composite, CompositeMessage::InitGui(composite_gui_tx));
 
     let select_pixbuf = Rc::new(RefCell::new(create_pixbuf(1, 1)));
     let result_pixbuf = Rc::new(RefCell::new(create_pixbuf(1, 1)));
@@ -47,7 +55,7 @@ pub fn build_ui(app: &Application, path: String, logic: LogicSender) {
 
     splitter.set_position(window.get_size().0/2);
 
-    log_err(logic.send(Some(LogicMessage::LoadImage(path))));
+    send(&logic, LogicMessage::LoadImage(path));
 }
 
 fn create_images(logic: LogicSender, id: ImageId) -> (Image, ScrolledWindow) {

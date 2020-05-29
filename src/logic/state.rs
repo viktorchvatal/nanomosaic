@@ -1,6 +1,6 @@
 use log::*;
-use crate::{common::{log_err, convert_err}};
-use crate::message::{GuiMessage, LogicMessage, Rgba, ImageId, MessageReceiver};
+use crate::{common::{convert_err}};
+use crate::message::{GuiMessage, LogicMessage, Rgba, ImageId, MessageReceiver, send_glib};
 use glib::{Sender as GlibSender};
 use image::{open};
 use nanocv::{ImgBuf, ImgSize, Img, Vec2d};
@@ -66,18 +66,14 @@ impl LogicState {
     }
 
     fn render_select_image(&self) {
-        if let Some(ref gui) = self.gui {
-            let resized = resize(&self.image, self.select_size);
-            log_err(gui.send(GuiMessage::Render((ImageId::Select, resized))));
-        }    
+        let resized = resize(&self.image, self.select_size);
+        send_glib(&self.gui, GuiMessage::Render((ImageId::Select, resized)));
     }
 
     fn render_result_image(&self) {
-        if let Some(ref gui) = self.gui {
-            let resized = resize(&self.image, self.result_size/2);
-            let mosaic = create_mosaic(&resized);
-            log_err(gui.send(GuiMessage::Render((ImageId::Result, mosaic))));
-        }    
+        let resized = resize(&self.image, self.result_size/2);
+        let mosaic = create_mosaic(&resized);
+        send_glib(&self.gui, GuiMessage::Render((ImageId::Result, mosaic)));
     }
 }
 

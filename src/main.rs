@@ -5,7 +5,7 @@ use log::*;
 use panic::set_logging_panic_hook;
 use logger::init_simple_logger;
 use gui::build_ui;
-use message::LogicMessage;
+use message::{CompositeMessage, LogicMessage};
 use logic::{LogicState};
 use common::convert_err;
 use threads::start_thread_loop;
@@ -43,17 +43,20 @@ fn start_application(file_name: &str) -> Result<(), String> {
         .expect("Initialization failed...");
 
     let (logic_tx, logic_rx) = mpsc::sync_channel::<Option<LogicMessage>>(queue_size);
+    let (composite_tx, composite_rx) = mpsc::sync_channel::<Option<CompositeMessage>>(queue_size);
 
     let state_thread = start_thread_loop(logic_rx, LogicState::new());
 
     let gui_logic_tx = logic_tx.clone();
+    let gui_composite_tx = composite_tx.clone();
     let gui_file_name = file_name.to_owned();
 
     app.connect_startup(move |app|
         build_ui(
             app,
             gui_file_name.clone(),
-            gui_logic_tx.clone()
+            gui_logic_tx.clone(),
+            gui_composite_tx.clone(),
         )
     );
     
