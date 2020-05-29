@@ -1,7 +1,7 @@
 use log::*;
 use glib::{Sender as GlibSender};
 use crate::message::{CompositeMessage, GuiMessage, MessageReceiver, Rgba, send_glib, ImageId};
-use crate::image::resize;
+use crate::common::resize;
 use nanocv::{ImgBuf, ImgSize, Img, Vec2d};
 use nanocv::filter::{
     map_range, mirror_horizontal_new, mirror_vertical_new

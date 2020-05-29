@@ -1,7 +1,6 @@
 use log::*;
-use crate::{common::{convert_err}};
+use crate::common::{convert_err, resize};
 use crate::message::*;
-use crate::image::resize;
 use glib::{Sender as GlibSender};
 use image::{open};
 use nanocv::{ImgBuf, ImgSize, Img};

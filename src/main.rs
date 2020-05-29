@@ -2,24 +2,17 @@ use gtk::*;
 use gio::{ApplicationFlags, ApplicationExt, ApplicationExtManual};
 use std::{env, sync::{mpsc}};
 use log::*;
-use panic::set_logging_panic_hook;
-use logger::init_simple_logger;
+use common::{set_logging_panic_hook, init_simple_logger, start_thread_loop, convert_err};
 use gui::build_ui;
 use message::{CompositeMessage, LogicMessage};
 use logic::{LogicState};
-use common::convert_err;
-use threads::start_thread_loop;
 use composite::CompositorState;
 
-mod panic;
-mod logger;
 mod message;
 mod gui;
 mod logic;
-mod common;
-mod threads;
 mod composite;
-mod image;
+mod common;
 
 fn main() -> Result<(), String> {
     if env::args().len() != 2 {
