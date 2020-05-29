@@ -22,3 +22,7 @@ pub enum ImageId {
     Select,
     Result
 }
+
+pub trait MessageReceiver<T>{
+    fn receive(&mut self, message: T) -> Result<(), String>;
+}

@@ -5,7 +5,7 @@ version = "0.1.0"
 license = "MIT"
 
 [dependencies]
-image = { version = "0.23", features = ["png", "jpeg"]}
+image = { version = "0.23", default-features = false, features = ["png", "jpeg"]}
 nanocv = { git = "https://github.com/viktorchvatal/nanocv" }
 
 gtk="*"
@@ -16,5 +16,8 @@ glib = "0.7.1"
 simplelog = "0.5.3"
 log = "0.4.6"
 itertools = "0.8.0"
-pango = "0.6.0"
 backtrace = "0.3.30"
+
+[profile.release]
+opt-level = 3
+lto = true

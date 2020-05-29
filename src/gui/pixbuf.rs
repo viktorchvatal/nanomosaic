@@ -5,7 +5,7 @@ use crate::message::Rgba;
 
 pub fn create_pixbuf(width: usize, height: usize) -> Pixbuf {
     Pixbuf::new(
-        Colorspace::Rgb, false, 8, width as i32, height as i32
+        Colorspace::Rgb, true, 8, width as i32, height as i32
     ).expect("No enough memory to create pixbuf.")
 }
 
@@ -32,14 +32,19 @@ fn copy_rgba_to_pixbuf(image: &ImgBuf<Rgba>, pixbuf: &Pixbuf) {
 
     for line in 0..h {
         let line_pixels = image.line_ref(line);
-        let buf_pixels = &mut pixbuf_data[line*stride..line*stride + w*3];
+        let buf_pixels = &mut pixbuf_data[line*stride..line*stride + w*4];
 
-        for index in 0..w {
-            let pixel = line_pixels[index];
-            buf_pixels[index*3 + 0] = pixel[0];
-            buf_pixels[index*3 + 1] = pixel[1];
-            buf_pixels[index*3 + 2] = pixel[2];
-        }
+        let mut offset = 0;
+
+        while offset < buf_pixels.len() {
+            let pixel = line_pixels[offset/4];
+            let target = &mut buf_pixels[offset .. (offset + 4)];
+            target[0] = pixel[0];
+            target[1] = pixel[1];
+            target[2] = pixel[2];
+            target[3] = pixel[3];
+            offset += 4;
+        }        
     }
 }
 

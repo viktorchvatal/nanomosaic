@@ -6,8 +6,9 @@ use panic::set_logging_panic_hook;
 use logger::init_simple_logger;
 use gui::build_ui;
 use message::LogicMessage;
-use logic::start_logic_thread;
+use logic::{LogicState};
 use common::convert_err;
+use threads::start_thread_loop;
 
 mod panic;
 mod logger;
@@ -15,6 +16,7 @@ mod message;
 mod gui;
 mod logic;
 mod common;
+mod threads;
 
 fn main() -> Result<(), String> {
     if env::args().len() != 2 {
@@ -42,7 +44,7 @@ fn start_application(file_name: &str) -> Result<(), String> {
 
     let (logic_tx, logic_rx) = mpsc::sync_channel::<Option<LogicMessage>>(queue_size);
 
-    let state_thread = start_logic_thread(logic_rx);
+    let state_thread = start_thread_loop(logic_rx, LogicState::new());
 
     let gui_logic_tx = logic_tx.clone();
     let gui_file_name = file_name.to_owned();

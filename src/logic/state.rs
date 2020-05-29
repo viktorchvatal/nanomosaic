@@ -1,6 +1,6 @@
 use log::*;
 use crate::{common::{log_err, convert_err}};
-use crate::message::{GuiMessage, LogicMessage, Rgba, ImageId};
+use crate::message::{GuiMessage, LogicMessage, Rgba, ImageId, MessageReceiver};
 use glib::{Sender as GlibSender};
 use image::{open};
 use nanocv::{ImgBuf, ImgSize, Img, Vec2d};
@@ -8,28 +8,30 @@ use nanocv::filter::{
     resize_nearest_new, map_range, mirror_horizontal_new, mirror_vertical_new
 };
 
-pub struct State {
+pub struct LogicState {
     gui: Option<GlibSender<GuiMessage>>,
     image: ImgBuf<Rgba>,
     select_size: ImgSize,
     result_size: ImgSize,
 }
 
-impl State {
-    pub fn new() -> Result<Self, String> {
-        Ok(Self {
-            gui: None,
-            image: ImgBuf::<Rgba>::new_init(ImgSize::new(1, 1), [0, 0, 0, 0]),
-            select_size: ImgSize::new(1, 1),
-            result_size: ImgSize::new(1, 1),
-        })
-    }
-
-    pub fn receive(&mut self, message: LogicMessage) -> Result<(), String> {
+impl MessageReceiver<LogicMessage> for LogicState {
+    fn receive(&mut self, message: LogicMessage) -> Result<(), String> {
         match message {
             LogicMessage::InitGui(channel) => Ok(self.init_gui(channel)),
             LogicMessage::LoadImage(path) => Ok(self.load_image(&path)),
             LogicMessage::ImageResized((id, size)) => Ok(self.image_resized(id, size)),
+        }
+    }
+}
+
+impl LogicState {
+    pub fn new() -> Self {
+        Self {
+            gui: None,
+            image: ImgBuf::<Rgba>::new_init(ImgSize::new(1, 1), [0, 0, 0, 0]),
+            select_size: ImgSize::new(1, 1),
+            result_size: ImgSize::new(1, 1),
         }
     }
 
