@@ -13,6 +13,7 @@ pub enum LogicMessage {
     InitGui(GlibSender<GuiMessage>),
     LoadImage(String),
     ImageResized((ImageId, ImgSize)),
+    MouseDown((u32, f64, f64)),
 }
 
 #[derive(Clone)]

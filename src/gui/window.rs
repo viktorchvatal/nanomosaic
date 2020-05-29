@@ -6,6 +6,7 @@ use gdk_pixbuf::{Pixbuf};
 use super::{pixbuf::{update_pixbuf, create_pixbuf}};
 use crate::{common::log_err, message::*};
 use nanocv::{ImgSize, ImgBuf};
+use gdk::EventButton;
 
 pub fn build_ui(
     app: &Application, 
@@ -26,8 +27,10 @@ pub fn build_ui(
     let splitter = Paned::new(Orientation::Horizontal);
     let window = create_window(app);
 
-    let (select_image, select_box) = create_images(logic.clone(), ImageId::Select);
-    let (result_image, result_box) = create_images(logic.clone(), ImageId::Result);
+    let (select_image, select_events, select_box) = create_images(logic.clone(), ImageId::Select);
+    let (result_image, _, result_box) = create_images(logic.clone(), ImageId::Result);
+
+    connect_image_mouse_down(select_events.clone(), logic.clone());
 
     splitter.pack1(&select_box, false, false);
     splitter.pack2(&result_box, true, true);
@@ -58,7 +61,7 @@ pub fn build_ui(
     send(&logic, LogicMessage::LoadImage(path));
 }
 
-fn create_images(logic: LogicSender, id: ImageId) -> (Image, ScrolledWindow) {
+fn create_images(logic: LogicSender, id: ImageId) -> (Image, EventBox, ScrolledWindow) {
     let image = create_image();
 
     let event_box = EventBox::new();
@@ -72,7 +75,15 @@ fn create_images(logic: LogicSender, id: ImageId) -> (Image, ScrolledWindow) {
 
     connect_image_resize(logic, image_box.clone(), id);
 
-    (image, image_box)
+    (image, event_box, image_box)
+}
+
+fn connect_image_mouse_down(image: EventBox, logic: LogicSender) {
+    image.connect_button_press_event(move |_image, event: &EventButton| {
+        let (x, y) = event.get_position();
+        send(&logic, LogicMessage::MouseDown((event.get_button(), x, y)));
+        Inhibit(true)
+    });
 }
 
 fn process_message(

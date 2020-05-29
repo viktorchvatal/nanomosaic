@@ -1,9 +1,9 @@
 use log::*;
-use crate::common::{convert_err, resize};
+use crate::common::{convert_err, resize, resize_factor};
 use crate::message::*;
 use glib::{Sender as GlibSender};
 use image::{open};
-use nanocv::{ImgBuf, ImgSize, Img};
+use nanocv::{ImgBuf, ImgSize, Img, Vec2d, Range2d, filter::map_range};
 
 pub struct LogicState {
     gui: Option<GlibSender<GuiMessage>>,
@@ -11,14 +11,18 @@ pub struct LogicState {
     select_size: ImgSize,
     result_size: ImgSize,
     compositor: CompositorSender,
+    start: Vec2d<isize>,
+    end: Vec2d<isize>,
 }
 
 impl MessageReceiver<LogicMessage> for LogicState {
     fn receive(&mut self, message: LogicMessage) -> Result<(), String> {
+        use LogicMessage::*;
         match message {
-            LogicMessage::InitGui(channel) => Ok(self.init_gui(channel)),
-            LogicMessage::LoadImage(path) => Ok(self.load_image(&path)),
-            LogicMessage::ImageResized((id, size)) => Ok(self.image_resized(id, size)),
+            InitGui(channel) => Ok(self.init_gui(channel)),
+            LoadImage(path) => Ok(self.load_image(&path)),
+            ImageResized((id, size)) => Ok(self.image_resized(id, size)),
+            MouseDown((button, x, y)) => Ok(self.mouse_down(button, x, y)),
         }
     }
 }
@@ -30,8 +34,23 @@ impl LogicState {
             image: ImgBuf::<Rgba>::new_init(ImgSize::new(1, 1), [0, 0, 0, 0]),
             select_size: ImgSize::new(1, 1),
             result_size: ImgSize::new(1, 1),
-            compositor
+            compositor,
+            start: Vec2d::new(0, 0),
+            end: Vec2d::new(0, 0),
         }
+    }
+
+    fn mouse_down(&mut self, button: u32, x: f64, y: f64) {
+        let factor = resize_factor(self.image.size(), self.select_size);
+        let point = Vec2d::new((x as f64/factor) as isize, (y as f64/factor) as isize);
+
+        match button {
+            1 => self.start = point,
+            3 => self.end = point,
+            _ => {}
+        }
+
+        self.render_result_image();
     }
 
     fn image_resized(&mut self, id: ImageId, size: ImgSize) {
@@ -57,6 +76,8 @@ impl LogicState {
             Ok(img) => {
                 info!("Image {} x {} loaded", img.width(), img.height());        
                 self.image = img;
+                self.start = Vec2d::new(0, 0);
+                self.end = self.image.range().end();
             },
             Err(msg) => {
                 warn!("Loading image {} failed: {}", path, msg);        
@@ -70,9 +91,15 @@ impl LogicState {
     }
 
     fn render_result_image(&self) {
+        let range = Range2d::new(self.start.x..self.end.x, self.start.y..self.end.y);
+        let patch_size = ImgSize::new(range.width() as usize, range.height() as usize);
+        let mut buffer = ImgBuf::<Rgba>::new(patch_size);
+        let output_range = buffer.range();
+        map_range(&self.image, &mut buffer, range, output_range, |i, _| i);
+
         send(
             &self.compositor, 
-            CompositeMessage::CompositeMosaic((self.image.clone(), self.result_size))
+            CompositeMessage::CompositeMosaic((buffer, self.result_size))
         );
     }
 }
