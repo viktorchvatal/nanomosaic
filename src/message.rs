@@ -12,6 +12,7 @@ pub type CompositorSender = SyncSender<Option<CompositeMessage>>;
 pub enum LogicMessage {
     InitGui(GlibSender<GuiMessage>),
     LoadImage(String),
+    SaveImage(String),
     ImageResized((ImageId, ImgSize)),
     MouseDown((u32, f64, f64)),
     CompositorFinished,
@@ -21,7 +22,8 @@ pub enum LogicMessage {
 #[derive(Clone)]
 pub enum CompositeMessage {
     InitGui(GlibSender<GuiMessage>),
-    CompositeMosaic((ImgBuf<Rgba>, ImgSize))
+    CompositeMosaic((ImgBuf<Rgba>, ImgSize)),
+    SaveMosaic((ImgBuf<Rgba>, String)),
 }
 
 #[derive(Clone)]

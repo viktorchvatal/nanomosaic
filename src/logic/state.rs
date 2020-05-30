@@ -35,9 +35,8 @@ impl MessageReceiver<LogicMessage> for LogicState {
                 self.compositor_free = true;
                 Ok(self.render_select_image())
             },
-            ReturnBuffer(_image) => {
-                Ok(())
-            }
+            ReturnBuffer(_image) => Ok(()),
+            SaveImage(path) => Ok(self.save_image(path)),
         }
     }
 }
@@ -157,13 +156,33 @@ impl LogicState {
         Range2d::new(x1..x2, y1..y2)
     }
 
+    fn save_image(&mut self, path: String) {
+        debug!("Save image path: {}", &path);
+
+        let buffer = self.get_selected_patch();
+
+        send(
+            &self.compositor, 
+            CompositeMessage::SaveMosaic((buffer, path))
+        );
+    }    
+
     fn render_result_image(&self) {
         if !self.result_modified { return; }
         if !self.compositor_free { return; }
 
+        let buffer = self.get_selected_patch();
+
+        send(
+            &self.compositor, 
+            CompositeMessage::CompositeMosaic((buffer, self.result_size))
+        );
+    }
+
+    fn get_selected_patch(&self) -> ImgBuf<Rgba> {
         let range = self.selected_range();
 
-        let buffer = if range.width() > 0 && range.height() > 0 {
+        if range.width() > 0 && range.height() > 0 {
             let patch_size = ImgSize::new(range.width() as usize, range.height() as usize);
             let mut buffer = ImgBuf::<Rgba>::new(patch_size);
             let output_range = buffer.range();
@@ -171,22 +190,17 @@ impl LogicState {
             buffer
         } else {
             ImgBuf::<Rgba>::new_init(ImgSize::new(1, 1), [0, 0, 0, 0])
-        };
-
-        send(
-            &self.compositor, 
-            CompositeMessage::CompositeMosaic((buffer, self.result_size))
-        );
+        }        
     }
 }
 
 fn load_image(path: &str) -> Result<ImgBuf<Rgba>, String> {
     let buf = convert_err(open(path))?.into_rgba();
     let size = ImgSize::new(buf.width() as usize, buf.height() as usize);
-    Ok(ImgBuf::from_vec(size, byte_vector_to_rgba(buf.into_vec())))
+    Ok(ImgBuf::from_vec(size, bytes_to_rgba(buf.into_vec())))
 }
 
-fn byte_vector_to_rgba(input: Vec<u8>) -> Vec<Rgba> {
+fn bytes_to_rgba(input: Vec<u8>) -> Vec<Rgba> {
     let pixels = input.len()/4;
     let mut result = vec![[0, 0, 0, 0]; pixels];
     let mut offset = 0;

@@ -3,7 +3,10 @@ use std::{rc::Rc, cell::RefCell};
 use glib::{MainContext};
 use super::components::*;
 use gdk_pixbuf::{Pixbuf};
-use super::{pixbuf::{update_pixbuf, create_pixbuf, horizontal_line, vertical_line}};
+use super::{
+    file_dialogs::{save_file_dialog, open_file_dialog}, 
+    pixbuf::{update_pixbuf, create_pixbuf, horizontal_line, vertical_line}
+};
 use crate::{common::log_err, message::*};
 use nanocv::{ImgSize, ImgBuf};
 use gdk::EventButton;
@@ -37,9 +40,11 @@ pub fn build_ui(
     splitter.pack2(&result_box, true, true);
 
     let load_button = create_load_button(logic.clone(), window.clone());
+    let save_button = create_save_button(logic.clone(), window.clone());
 
     let top_panel = Box::new(Orientation::Horizontal, 0);
     top_panel.pack_start(&load_button, false, false, 5);
+    top_panel.pack_start(&save_button, false, false, 5);
 
     let main_panel = Box::new(Orientation::Vertical, 0);
     main_panel.pack_start(&top_panel, false, false, 5);
@@ -84,19 +89,15 @@ fn create_load_button(logic: LogicSender, window: ApplicationWindow) -> Button {
     button    
 }
 
-fn open_file_dialog(window: ApplicationWindow) -> Option<String> {
-    let open_dialog = FileChooserDialog::with_buttons(
-        "Load image", Some(&window), FileChooserAction::Open,
-        &[("_Cancel", ResponseType::Cancel), ("_Open", ResponseType::Accept)]
-    );
-
-    let result = open_dialog.clone().run();    
-    open_dialog.close();
-
-    match result {
-        -3 => Some(open_dialog.get_filename()?.to_str()?.to_owned()),
-        _ => None
-    }
+fn create_save_button(logic: LogicSender, window: ApplicationWindow) -> Button {
+    let button = Button::new();
+    button.add(&Label::new("Save image"));
+    button.connect_clicked(move |_| {
+        if let Some(path) = save_file_dialog(window.clone()) {
+            send(&logic, LogicMessage::SaveImage(path));
+        }
+    });   
+    button    
 }
 
 fn create_images(logic: LogicSender, id: ImageId) -> (Image, EventBox, ScrolledWindow) {
