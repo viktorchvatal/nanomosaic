@@ -48,3 +48,38 @@ fn copy_rgba_to_pixbuf(image: &ImgBuf<Rgba>, pixbuf: &Pixbuf) {
     }
 }
 
+pub fn horizontal_line(pixbuf: &Pixbuf, line: isize) {
+    if line >= 0 && line < pixbuf.get_height() as isize {
+        let line = line as usize;
+        let width = pixbuf.get_width() as usize;
+        let pixbuf_data = unsafe { pixbuf.get_pixels() };
+        let stride = pixbuf.get_rowstride() as usize;
+        let line_pixels = &mut pixbuf_data[line*stride..line*stride + width*4];        
+        let mut offset = 0;
+
+        while offset < line_pixels.len() {
+            invert_pixel(line_pixels, offset);
+            offset += 4;
+        }       
+    }
+}
+
+pub fn vertical_line(pixbuf: &Pixbuf, column: isize) {
+    if column >= 0 && column < pixbuf.get_width() as isize {
+        let column = column as usize;
+        let pixbuf_data = unsafe { pixbuf.get_pixels() };
+        let pixel_offset = column*4;
+        let stride = pixbuf.get_rowstride() as usize;
+
+        for line in 0..pixbuf.get_height() as usize {
+            let offset = line*stride + pixel_offset;
+            invert_pixel(pixbuf_data, offset);
+        }
+    }
+}
+
+fn invert_pixel(data: &mut [u8], offset: usize) {
+    data[offset + 0] = 255 - data[offset + 0];
+    data[offset + 1] = 255 - data[offset + 1];
+    data[offset + 2] = 255 - data[offset + 2];
+}

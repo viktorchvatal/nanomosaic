@@ -28,6 +28,7 @@ pub enum CompositeMessage {
 pub enum GuiMessage {
     RenderSource(ImgBuf<Rgba>),
     RenderTarget(ImgBuf<Rgba>),
+    RenderLines(SelectionLines),
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -49,4 +50,12 @@ pub fn send_glib<T>(sender: &Option<GlibSender<T>>, message: T) {
         Some(sender) => log_err(sender.send(message)),
         None => error!("Cannot send message, no sender available."),
     }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct SelectionLines {
+    pub x1: isize,
+    pub x2: isize,
+    pub y1: isize,
+    pub y2: isize
 }

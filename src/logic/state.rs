@@ -1,7 +1,6 @@
 use log::*;
 use crate::common::{
-    convert_err, resize, resize_factor, draw_full_horizontal_line,
-    draw_full_vertical_line
+    convert_err, resize, resize_factor
 };
 use crate::message::*;
 use glib::{Sender as GlibSender};
@@ -20,7 +19,8 @@ pub struct LogicState {
     result_modified: bool,
     compositor_free: bool,
     source_modified: bool,
-    output_buffer: Option<ImgBuf<Rgba>>,
+    last_source_size: Option<ImgSize>,
+    last_rendered_lines: Option<SelectionLines>,
 }
 
 impl MessageReceiver<LogicMessage> for LogicState {
@@ -47,7 +47,6 @@ impl LogicState {
         Self {
             gui: None,
             image: ImgBuf::<Rgba>::new_init(ImgSize::new(1, 1), [0, 0, 0, 0]),
-            output_buffer: Some(ImgBuf::<Rgba>::new_init(ImgSize::new(1, 1), [0, 0, 0, 0])),
             select_size: ImgSize::new(1, 1),
             result_size: ImgSize::new(1, 1),
             compositor,
@@ -56,6 +55,8 @@ impl LogicState {
             result_modified: true,
             compositor_free: true,
             source_modified: true,
+            last_source_size: None,
+            last_rendered_lines: None,
         }
     }
 
@@ -106,6 +107,8 @@ impl LogicState {
                 self.image = img;
                 self.start = Vec2d::new(0, 0);
                 self.end = self.image.range().end();
+                self.last_source_size = None;
+                self.last_rendered_lines = None;
                 self.render_all();
             },
             Err(msg) => {
@@ -115,17 +118,35 @@ impl LogicState {
     }
 
     fn render_select_image(&mut self) {
-        if self.output_buffer.is_none() {
-            return;
-        }
+        let lines = self.selection_lines();
 
-        let mut img = resize(&self.image, self.select_size);
-        let factor = resize_factor(self.image.size(), self.select_size);
-        draw_full_horizontal_line(&mut img, (self.start.y as f64*factor) as isize);
-        draw_full_vertical_line(&mut img, (self.start.x as f64*factor) as isize);
-        draw_full_horizontal_line(&mut img, (self.end.y as f64*factor) as isize);
-        draw_full_vertical_line(&mut img, (self.end.x as f64*factor) as isize);
+        if let Some(size) = self.last_source_size {
+            if size == self.select_size {
+                // Image in GUI is already rendered, just update selection lines
+                if let Some(last_lines) = self.last_rendered_lines {
+                    send_glib(&self.gui, GuiMessage::RenderLines(last_lines));
+                };
+                self.last_rendered_lines = Some(lines);
+                send_glib(&self.gui, GuiMessage::RenderLines(lines));
+                return;
+            }
+        }
+        let img = resize(&self.image, self.select_size);
+        self.last_source_size = Some(self.select_size);
+        self.last_rendered_lines = Some(lines);
         send_glib(&self.gui, GuiMessage::RenderSource(img));
+        send_glib(&self.gui, GuiMessage::RenderLines(lines));
+    }
+
+    fn selection_lines(&self) -> SelectionLines {
+        let factor = resize_factor(self.image.size(), self.select_size);
+
+        SelectionLines {
+            x1: (self.start.x as f64*factor) as isize,
+            x2: (self.end.x as f64*factor) as isize,
+            y1: (self.start.y as f64*factor) as isize,
+            y2: (self.end.y as f64*factor) as isize
+        }        
     }
 
     fn selected_range(&self) -> Range2d<isize> {

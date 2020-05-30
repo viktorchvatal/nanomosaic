@@ -3,7 +3,7 @@ use std::{rc::Rc, cell::RefCell};
 use glib::{MainContext};
 use super::components::*;
 use gdk_pixbuf::{Pixbuf};
-use super::{pixbuf::{update_pixbuf, create_pixbuf}};
+use super::{pixbuf::{update_pixbuf, create_pixbuf, horizontal_line, vertical_line}};
 use crate::{common::log_err, message::*};
 use nanocv::{ImgSize, ImgBuf};
 use gdk::EventButton;
@@ -156,6 +156,14 @@ fn process_message(
         GuiMessage::RenderTarget(data) => {
             update_image(result_image, result_pixbuf, &data);
         },
+        GuiMessage::RenderLines(lines) => {
+            horizontal_line(&select_pixbuf.borrow(), lines.y1);
+            horizontal_line(&select_pixbuf.borrow(), lines.y2);
+            vertical_line(&select_pixbuf.borrow(), lines.x1);
+            vertical_line(&select_pixbuf.borrow(), lines.x2);
+            let inner: &Pixbuf = &select_pixbuf.borrow();
+            select_image.set_from_pixbuf(Some(inner));
+        }
     }
 }
 
