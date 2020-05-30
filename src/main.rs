@@ -15,13 +15,6 @@ mod composite;
 mod common;
 
 fn main() -> Result<(), String> {
-    if env::args().len() != 2 {
-        println!("USAGE:\nnanomosaic [image]");
-        return Ok(());
-    }
-
-    println!("Arg count: {}", env::args().len());
-
     let path: Option<String> = match env::args().len() {
         1 => None,
         2 => Some(env::args().nth(1).unwrap()),

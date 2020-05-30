@@ -31,6 +31,7 @@ pub enum GuiMessage {
     RenderSource(ImgBuf<Rgba>),
     RenderTarget(ImgBuf<Rgba>),
     RenderLines(SelectionLines),
+    ShowError(String),    
 }
 
 #[derive(Clone, Copy, Debug)]

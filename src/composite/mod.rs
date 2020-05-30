@@ -18,7 +18,18 @@ impl MessageReceiver<CompositeMessage> for CompositorState {
         match message {
             CompositeMessage::InitGui(channel) => Ok(self.init_gui(channel)),
             CompositeMessage::CompositeMosaic((img, size)) => Ok(self.composite(img, size)),
-            CompositeMessage::SaveMosaic((img, path)) => self.save(img, &path),
+            CompositeMessage::SaveMosaic((img, path)) => {
+                let result = self.save(img, &path);
+
+                if let Err(ref message) = result {
+                    send_glib(&self.gui, GuiMessage::ShowError(format!(
+                        "Could not save image into:\n{}\nPerhaps image format is not specified?\n{}",
+                        path, message
+                    )));
+                };
+
+                result
+            },
         }
     }
 }

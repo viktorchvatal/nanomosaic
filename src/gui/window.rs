@@ -58,8 +58,11 @@ pub fn build_ui(
     let message_select_image = select_image.clone();
     let message_result_image = result_image.clone();
 
+    let window_clone = window.clone();
+
     gui_rx.attach(None, move |message: GuiMessage| {
         process_message(
+            window_clone.clone(),
             message_logic_sender.clone(),
             message, 
             select_pixbuf.clone(),
@@ -142,6 +145,7 @@ fn connect_image_mouse_move(image: EventBox, logic: LogicSender) {
 }
 
 fn process_message(
+    window: ApplicationWindow,
     logic: LogicSender,
     message: GuiMessage, 
     select_pixbuf: Rc<RefCell<Pixbuf>>, 
@@ -164,6 +168,17 @@ fn process_message(
             vertical_line(&select_pixbuf.borrow(), lines.x2);
             let inner: &Pixbuf = &select_pixbuf.borrow();
             select_image.set_from_pixbuf(Some(inner));
+        },
+        GuiMessage::ShowError(message) => {
+            let dialog = MessageDialog::new(Some(&window),
+                DialogFlags::empty(),
+                MessageType::Error,
+                ButtonsType::Ok,
+                &message
+            );
+            
+            dialog.run();            
+            dialog.close();
         }
     }
 }
