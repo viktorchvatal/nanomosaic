@@ -3,6 +3,7 @@ name = "nanomosaic"
 edition = "2018"
 version = "1.0.0"
 authors = ["Viktor Chvatal"]
+license = "MIT"
 
 [dependencies]
 image = { version = "0.23", default-features = false, features = ["png", "jpeg"]}

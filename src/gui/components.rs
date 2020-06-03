@@ -9,7 +9,7 @@ pub fn create_image() -> Image {
 
 pub fn create_window(application: &Application) -> ApplicationWindow {
     let window = ApplicationWindow::new(application);
-    window.set_title("Mosaic creator");
+    window.set_title("Mosaic creator 1.0.0");
     window.set_border_width(10);
     window.set_position(WindowPosition::Center);
     window.set_default_size(1600, 900);
