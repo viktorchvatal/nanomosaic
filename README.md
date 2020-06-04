@@ -13,10 +13,10 @@ Simple program for creating mosaics from images.
 
 ## Usage
  - press Load button to load input image
- - use left and right mouse buttons withing leaf image to select area for mosaic
+ - use left and right mouse buttons within left image to select area for mosaic
  - use splitter between images to resize them
- - press Save button to save result, output file name must end wit .png or .jpg suffix
+ - press Save button to save result, output file name must end with .png or .jpg suffix
 
 ## Downloads
- [go to Releases](https://github.com/viktorchvatal/nanomosaic/releases)
+ - [Releases](https://github.com/viktorchvatal/nanomosaic/releases)
 
