@@ -1,8 +1,11 @@
+//! Common functions used across the application
+
 mod panic;
 mod logger;
 mod utils;
 mod threads;
 mod image;
+
 pub use self::panic::set_logging_panic_hook;
 pub use self::image::{resize, resize_factor};
 pub use self::logger::init_simple_logger;

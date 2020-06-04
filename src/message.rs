@@ -1,3 +1,5 @@
+//! Messages that are sent betweeb GUI, logic and worker threads
+
 use log::*;
 use glib::{Sender as GlibSender};
 use std::sync::mpsc::SyncSender;

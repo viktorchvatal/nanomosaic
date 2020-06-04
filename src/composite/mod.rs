@@ -1,12 +1,12 @@
+//! Compositor thread that renders mosaic into preview or output image
+
 use log::*;
 use glib::{Sender as GlibSender};
+use image::RgbaImage;
 use crate::message::*;
 use crate::common::{resize, convert_err};
 use nanocv::{ImgBuf, ImgSize, Img, Vec2d};
-use nanocv::filter::{
-    map_range, mirror_horizontal_new, mirror_vertical_new
-};
-use image::RgbaImage;
+use nanocv::filter::{map_range, mirror_horizontal_new, mirror_vertical_new};
 
 pub struct CompositorState { 
     logic: LogicSender,
@@ -18,18 +18,7 @@ impl MessageReceiver<CompositeMessage> for CompositorState {
         match message {
             CompositeMessage::InitGui(channel) => Ok(self.init_gui(channel)),
             CompositeMessage::CompositeMosaic((img, size)) => Ok(self.composite(img, size)),
-            CompositeMessage::SaveMosaic((img, path)) => {
-                let result = self.save(img, &path);
-
-                if let Err(ref message) = result {
-                    send_glib(&self.gui, GuiMessage::ShowError(format!(
-                        "Could not save image into:\n{}\nPerhaps image format is not specified?\n{}",
-                        path, message
-                    )));
-                };
-
-                result
-            },
+            CompositeMessage::SaveMosaic((img, path)) => self.save_mosaic(&img, &path),
         }
     }
 }
@@ -51,18 +40,31 @@ impl CompositorState {
         send(&self.logic, LogicMessage::CompositorFinished)
     }
 
-    fn save(&self, img: ImgBuf<Rgba>, path: &str) -> Result<(), String> {
-        let mosaic = create_mosaic(&img);
-        let size = mosaic.size();
-        let pixels = mosaic.into_vec();
-        let bytes = rgba_to_bytes(pixels);
-
-        let result = RgbaImage::from_vec(size.x as u32, size.y as u32, bytes)
-            .ok_or("Could not allocate image data")?;
-
-        convert_err(result.save(path))
+    fn save_mosaic(&self, img: &ImgBuf<Rgba>, path: &str) -> Result<(), String> {
+        let result = save(img, &path);
+    
+        if let Err(ref message) = result {
+            send_glib(&self.gui, GuiMessage::ShowError(format!(
+                "Could not save image into:\n{}\nPerhaps image format is not specified?\n{}",
+                path, message
+            )));
+        };
+    
+        result
     }    
 }
+
+fn save(img: &ImgBuf<Rgba>, path: &str) -> Result<(), String> {
+    let mosaic = create_mosaic(img);
+    let size = mosaic.size();
+    let pixels = mosaic.into_vec();
+    let bytes = rgba_to_bytes(pixels);
+
+    let result = RgbaImage::from_vec(size.x as u32, size.y as u32, bytes)
+        .ok_or("Could not allocate image data")?;
+
+    convert_err(result.save(path))
+}    
 
 fn create_mosaic(image: &ImgBuf<Rgba>) -> ImgBuf<Rgba> {
     let mut result = ImgBuf::new(image.size()*2);

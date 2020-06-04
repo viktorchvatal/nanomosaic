@@ -1,3 +1,5 @@
+//! GUI thread running GTK window and widgets
+
 mod window;
 mod pixbuf;
 mod components;
