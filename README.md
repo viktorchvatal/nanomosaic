@@ -8,7 +8,7 @@ Simple program for creating mosaics from images.
  - supports loading and saving JPG and PNG images
  - provides real-time mosaic preview
  - runs on Windows 7/8/10 and Debian 10 (Buster)
- - uses GTK gor user interface (all necessary libraries bundled in windows build)
+ - uses GTK for user interface (all necessary libraries bundled in windows build)
  - [Changelog](CHANGELOG.md)
 
 ## Usage
